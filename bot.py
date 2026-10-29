@@ -22,6 +22,9 @@ TOKEN = os.getenv("BOT_TOKEN", "ВСТАВЬТЕ_ТОКЕН_СЮДА")
 QUESTIONS_FILE = "questions.json"
 DB_FILE = "results.db"
 
+# сколько ошибок показывать в итоговом сообщении
+MAX_SHOWN_ERRORS = 10
+
 logging.basicConfig(level=logging.INFO)
 
 # ---------- Вопросы ----------
@@ -229,14 +232,18 @@ async def finish_quiz(chat_id, user_id, username):
 
         if s["wrong"]:
             text += "\n\n<b>Ошибки:</b>\n"
-            for idx in s["wrong"][:12]:
+            for idx in s["wrong"][:MAX_SHOWN_ERRORS]:
                 q = QUESTIONS[idx]
                 text += (
-                    f"• {html.escape(q['question'][:80])}\n"
-                    f"   ✔ {html.escape(q['options'][q['correct']])}\n"
+                    f"• {html.escape(q['question'])}\n"
+                    f"   ✔ {html.escape(q['options'][q['correct']])}\n\n"
                 )
-            if len(s["wrong"]) > 12:
-                text += f"…и ещё {len(s['wrong']) - 12}"
+            if len(s["wrong"]) > MAX_SHOWN_ERRORS:
+                text += f"…и ещё {len(s['wrong']) - MAX_SHOWN_ERRORS}"
+
+    # защита от лимита Telegram (4096 символов)
+    if len(text) > 4000:
+        text = text[:3990] + "…"
 
     await bot.send_message(chat_id, text, parse_mode="HTML", reply_markup=main_menu(user_id))
 
